@@ -2,7 +2,7 @@
 
 # 📜 README: Semgrep Rules for LLM Prompt Injection Detection
 
-## 🎯 Objective
+## Objective
 
 These Semgrep rules aim to **detect potential prompt injection vulnerabilities** in Python projects that use Large Language Models (LLMs).
 
@@ -12,7 +12,7 @@ Prompt injection is a critical security issue in LLM-based apps. If an attacker 
 
 ---
 
-## 📦 Rule Types
+## Rule Types
 
 This repo includes:
 
@@ -27,7 +27,7 @@ Track data flow from user-controlled sources (like `request.get_json()`) to LLM 
 
 ---
 
-## ⚙️ Setup
+## ⚙Setup
 
 1️⃣ **Install Semgrep**
 
