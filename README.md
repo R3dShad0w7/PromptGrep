@@ -1,6 +1,6 @@
 # PromptGrep
 
-# 📜 README: Semgrep Rules for LLM Prompt Injection Detection
+# Semgrep Rules for LLM Prompt Injection Detection
 
 ## Objective
 
@@ -29,7 +29,7 @@ Track data flow from user-controlled sources (like `request.get_json()`) to LLM 
 
 ## ⚙Setup
 
-1️⃣ **Install Semgrep**
+**Install Semgrep**
 
 If you haven’t already:
 
