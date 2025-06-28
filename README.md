@@ -47,7 +47,6 @@ These rules work purely by **pattern matching**, without data-flow (taint) track
 
 Example rule snippet:
 
-```yaml
 pattern-either:
   - pattern: f"...{...}..."
   - pattern: $PROMPT.format(...)
@@ -66,11 +65,9 @@ pip install semgrep
 
 Scan your project with:
 
+```
 semgrep --config PATH_TO_RULES_DIRECTORY .
-
-Example:
-
-semgrep --config ./rules .
+```
 
 ✅ Customizing Rules
 
