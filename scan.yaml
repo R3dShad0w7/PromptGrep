@@ -1,0 +1,183 @@
+rules:
+  - id: python-llm-prompt-injection-combined
+    message: "Possible prompt injection vulnerability: user input is used directly or unsafely in the LLM prompt."
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: security
+      technology: llm
+      vulnerability: prompt-injection
+    pattern-either:
+
+      # 1. Prompt assignment with f-string using user input
+      - patterns:
+          - pattern: $PROMPT = f"...{$USER_INPUT}..."
+          - metavariable-regex:
+              metavariable: $PROMPT
+              regex: (?i)prompt|input|query
+          - metavariable-regex:
+              metavariable: $USER_INPUT
+              regex: (?i)user.*input|query
+
+      # 1a. Multiline f-string
+      - patterns:
+          - pattern: $PROMPT = f"""...{$USER_INPUT}..."""
+          - metavariable-regex:
+              metavariable: $PROMPT
+              regex: (?i)prompt|input|query
+          - metavariable-regex:
+              metavariable: $USER_INPUT
+              regex: (?i)user.*input|query
+
+      # 2. Prompt via string concatenation
+      - patterns:
+          - pattern: $PROMPT = $A + $USER_INPUT + $B
+          - metavariable-regex:
+              metavariable: $PROMPT
+              regex: (?i)prompt|input|query
+          - metavariable-regex:
+              metavariable: $USER_INPUT
+              regex: (?i)user.*input|query
+
+      # 2a. Prompt using .format
+      - patterns:
+          - pattern: $PROMPT = "...".format($USER_INPUT)
+          - metavariable-regex:
+              metavariable: $PROMPT
+              regex: (?i)prompt|input|query
+          - metavariable-regex:
+              metavariable: $USER_INPUT
+              regex: (?i)user.*input|query
+
+      # 3. Indirect assignment from user input
+      - patterns:
+          - pattern: $PROMPT = $VAR
+          - pattern-inside: $VAR = $A + $USER_INPUT + $B
+          - metavariable-regex:
+              metavariable: $PROMPT
+              regex: (?i)prompt|input|query
+
+      # 4. Direct LLM method calls with prompt
+      - patterns:
+          - pattern: $RESPONSE = $MODEL.invoke($PROMPT)
+          - metavariable-regex:
+              metavariable: $PROMPT
+              regex: (?i)prompt|input|query
+      - patterns:
+          - pattern: $RESPONSE = $MODEL.generate($PROMPT)
+          - metavariable-regex:
+              metavariable: $PROMPT
+              regex: (?i)prompt|input|query
+
+      # 5. LLM method calls with raw user input
+      - pattern: $RESPONSE = $MODEL.invoke($USER_INPUT)
+      - pattern: $RESPONSE = $MODEL.generate($USER_INPUT)
+
+      # 6. AgentExecutor call using prompt (contextual)
+      - patterns:
+          - pattern-inside: |
+              $EXEC = AgentExecutor.from_agent_and_tools(...)
+          - pattern: $EXEC($PROMPT, ...)
+          - metavariable-regex:
+              metavariable: $PROMPT
+              regex: (?i)prompt|input|query
+
+      # 7. ChatOpenAI or similar callable usage
+      - patterns:
+          - pattern-inside: |
+              $LLM = ChatOpenAI(...)
+          - pattern: $LLM($PROMPT)
+          - metavariable-regex:
+              metavariable: $PROMPT
+              regex: (?i)prompt|input|query
+
+      # 8. Common LLM utility functions with prompt
+      - patterns:
+          - pattern: $FUNC($PROMPT)
+          - metavariable-regex:
+              metavariable: $FUNC
+              regex: (?i)(run|invoke|llm|chat|ask|predict|generate)
+          - metavariable-regex:
+              metavariable: $PROMPT
+              regex: (?i)prompt|input|query
+
+      # 9. Fallback: ANY function or callable using prompt-like variable
+      - patterns:
+          - pattern: $CALLABLE($PROMPT, ...)
+          - metavariable-regex:
+              metavariable: $CALLABLE
+              regex: (?i)(invoke|run|predict|generate|ask|chat)
+
+      # 10. "".join([...]) with user_input inside
+      - patterns:
+          - pattern: $PROMPT = "".join([$A, $USER_INPUT, $B])
+          - metavariable-regex:
+              metavariable: $PROMPT
+              regex: (?i)prompt|input|query
+          - metavariable-regex:
+              metavariable: $USER_INPUT
+              regex: (?i)user.*input|query
+
+      # 11. .join() with separator
+      - patterns:
+          - pattern: $PROMPT = $SEP.join([$A, $USER_INPUT, $B])
+          - metavariable-regex:
+              metavariable: $PROMPT
+              regex: (?i)prompt|input|query
+          - metavariable-regex:
+              metavariable: $USER_INPUT
+              regex: (?i)user.*input|query
+
+      # 12. += appending user input
+      - patterns:
+          - pattern: $PROMPT += $USER_INPUT
+          - metavariable-regex:
+              metavariable: $PROMPT
+              regex: (?i)prompt|input|query
+          - metavariable-regex:
+              metavariable: $USER_INPUT
+              regex: (?i)user.*input|query
+
+      # 13. Dictionary / JSON prompt with user input
+      - patterns:
+          - pattern: '$PROMPT = {"role": ..., "content": $USER_INPUT}'
+          - metavariable-regex:
+              metavariable: $PROMPT
+              regex: (?i)prompt|input|query
+          - metavariable-regex:
+              metavariable: $USER_INPUT
+              regex: (?i)user.*input|query
+
+      # 14. build_prompt(user_input) or other helper function
+      - patterns:
+          - pattern: $PROMPT = $FUNC($USER_INPUT)
+          - metavariable-regex:
+              metavariable: $PROMPT
+              regex: (?i)prompt|input|query
+          - metavariable-regex:
+              metavariable: $USER_INPUT
+              regex: (?i)user.*input|query
+
+      # 15. Append to list
+      - patterns:
+          - pattern: $LIST.append($USER_INPUT)
+          - metavariable-regex:
+              metavariable: $USER_INPUT
+              regex: (?i)user.*input|query
+
+      # 16. Chat message lists
+      - patterns:
+          - pattern: '{"role": "user", "content": $USER_INPUT}'
+          - metavariable-regex:
+              metavariable: $USER_INPUT
+              regex: '(?i)user.*input|query|message'
+
+      # 17. Any call to known LLM "sink" methods (positional or named args)
+      - patterns:
+          - pattern: $OBJ.$FUNC(...)
+          - metavariable-regex:
+              metavariable: $FUNC
+              regex: (?i)(predict|invoke|generate|run|chat|ask)
+          - metavariable-regex:
+              metavariable: $ARG
+              regex: (?i)prompt|input|query|message|user.*input
